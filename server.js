@@ -81,7 +81,7 @@ app.get('/api/rivers', async (req, res) => {
 
  app.get('/api/protected-areas', async (req, res) => {
    try {
-     res.json(await getLayerAsGeoJSON('protected_areas'));
+     res.json(await getLayerAsGeoJSON('protected'));
    } catch (err) {
      console.error(err);
      res.status(500).json({ error: 'Failed to fetch protected areas' });
