@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Islamabad Protected Areas Map</title>
+
+<!-- Leaflet's CSS — required for the map to be styled correctly -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+  #map { height: 100vh; width: 100%; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet's JS library -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // ============================================================
+  // CONFIG — change this to point at your backend
+  // ============================================================
+  // While testing locally (running `node server.js` on your own machine):
+  const API_BASE_URL = 'https://webmapping--zohahasan.replit.app';
+  // Once you deploy the backend to render or replit, replace the line above with your live URL
+
+  // ============================================================
+  // 1. Create the map
+  // ============================================================
+  // No center/zoom given here on purpose — we zoom to fit your data once it loads (step 4).
+  const map = L.map('map');
+
+  // ------------------------------------------------------------
+  // Base maps — these are the background tile layers (satellite/street style
+  // maps underneath your data). Only ONE of these shows at a time; the layer
+  // control below lets you switch between them with radio buttons.
+  // ------------------------------------------------------------
+  const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  });
+
+  const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+    maxZoom: 19
+  });
+
+  // Google's tile server accessed this way isn't an official public API (no key needed,
+  // but it's an unofficial method commonly used for demos/learning — not meant for
+  // production/commercial use per Google's terms). Fine for this practice project.
+  const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    attribution: '&copy; Google',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20
+  });
+
+  // This groups the three base maps so the layer control shows them as
+  // radio buttons (only one active at a time). CHANGE which one is default
+  // by moving .addTo(map) to a different variable below.
+  const baseMaps = {
+    'CartoDB Positron': cartoPositron,
+    'OpenStreetMap': osmStandard,
+    'Google Streets': googleStreets
+  };
+
+  cartoPositron.addTo(map); // default basemap shown when the page loads
+  // Leaflet enables mouse-wheel zoom and click-and-drag panning by default —
+  // you don't need to add anything extra for that.
+
+  // ============================================================
+  // 2. Define how each layer should look
+  // ============================================================
+  // Change these colors/weights to whatever you like.
+  const styles = {
+    boundary:       { color: '#C20029', weight: 2, fill: false },
+    protectedAreas: { color: '#2e7d32', weight: 1, fillColor: '#66bb6a', fillOpacity: 0.3 },
+    roads:          { color: '#A9746E', weight: 1.0, opacity: 0.4 },
+    rivers:         { color: '#1e88e5', weight: 2 , opacity: 0.7}
+  };
+
+  // This object holds the actual Leaflet layers once loaded, so we can hand
+  // them to the layer control (the enable/disable checkboxes).
+  const overlays = {};
+
+  // ============================================================
+  // 3. Helper: fetch one GeoJSON layer from the API and add it to the map
+  // ============================================================
+  // endpoint:    which API route to call, e.g. '/api/roads'
+  // style:       which style object above to use
+  // label:       text shown next to the checkbox in the layer control
+  // popupField:  which property to show in a popup on click (set to null to skip)
+  async function loadLayer(endpoint, style, label, popupField) {
+    const response = await fetch(API_BASE_URL + endpoint);
+    const geojsonData = await response.json();
+
+    const layer = L.geoJSON(geojsonData, {
+      style: style,
+      onEachFeature: (feature, layer) => {
+        if (popupField && feature.properties && feature.properties[popupField]) {
+          layer.bindPopup(String(feature.properties[popupField]));
+        }
+      }
+    });
+
+    layer.addTo(map);        // show it immediately
+    overlays[label] = layer; // register it for the toggle control
+
+    return layer;
+  }
+
+  // ============================================================
+  // 4. Load all four layers, then add the toggle control and zoom to fit
+  // ============================================================
+  // CHANGE the popupField name (e.g. 'name', 'class') below if your columns
+  // in Supabase are called something different.
+  Promise.all([
+    loadLayer('/api/boundary',         styles.boundary,       'ICT Boundary',        'district'),
+    loadLayer('/api/protected-areas',  styles.protectedAreas, 'Protected Areas',     'name'),
+    loadLayer('/api/roads',            styles.roads,          'Roads',               'fclass'),
+    loadLayer('/api/rivers',           styles.rivers,         'Rivers & Streams',  'fclass')
+  ]).then((layers) => {
+    // This adds the checkbox/radio panel — baseMaps (radio buttons, pick one basemap)
+    // and overlays (checkboxes, toggle each data layer independently).
+    layers[2].bringToBack();
+    layers[1].bringToFront();
+    L.control.layers(baseMaps, overlays, { collapsed: false }).addTo(map);
+
+    // Zoom/pan so everything is visible on load. Uses the boundary layer (layers[0]),
+    // since that should cover your whole study area.
+    map.fitBounds(layers[0].getBounds());
+  }).catch((err) => {
+    console.error('Error loading layers:', err);
+    alert('Could not load map data — check that your backend API is running and reachable.');
+  });
+</script>
+
+</body>
+</html>
