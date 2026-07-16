@@ -61,14 +61,14 @@ async function getLayerAsGeoJSON(tableName) {
 // if you named your Supabase tables differently.
 // ------------------------------------------------------------------
 
-//app.get('/api/roads', async (req, res) => {
-//  try {
-//    res.json(await getLayerAsGeoJSON('roads'));
-//  } catch (err) {
-//    console.error(err);
-//    res.status(500).json({ error: 'Failed to fetch roads' });
-//  }
-//});
+app.get('/api/roads', async (req, res) => {
+  try {
+    res.json(await getLayerAsGeoJSON('roads'));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch roads' });
+  }
+});
 
 app.get('/api/rivers', async (req, res) => {
   try {
@@ -79,14 +79,14 @@ app.get('/api/rivers', async (req, res) => {
   }
 });
 
-// app.get('/api/protected-areas', async (req, res) => {
-//   try {
-//     res.json(await getLayerAsGeoJSON('protected_areas'));
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Failed to fetch protected areas' });
-//   }
-// });
+ app.get('/api/protected-areas', async (req, res) => {
+   try {
+     res.json(await getLayerAsGeoJSON('protected_areas'));
+   } catch (err) {
+     console.error(err);
+     res.status(500).json({ error: 'Failed to fetch protected areas' });
+   }
+ });
 
 app.get('/api/boundary', async (req, res) => {
   try {
@@ -100,8 +100,7 @@ app.get('/api/boundary', async (req, res) => {
 // Just so visiting the root URL shows something useful instead of an error
 app.get('/', (req, res) => {
   res.send(
-    'Islamabad GIS API is running. Try /api/rivers, /api/boundary'
-    //'Islamabad GIS API is running. Try /api/roads, /api/rivers, /api/protected-areas, /api/boundary'
+    'Islamabad GIS API is running. Try /api/roads, /api/rivers, /api/protected-areas, /api/boundary'
   );
 });
 
